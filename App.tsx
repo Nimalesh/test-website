@@ -25,8 +25,8 @@ const App: React.FC = () => {
           const result = await analyzeCarbonReport(base64String, file.type);
           setData(result);
           setView('result');
-        } catch (err) {
-          setError('Failed to analyze the document. Please ensure it contains carbon emission data.');
+        } catch (err: any) {
+          setError(err.message || 'Failed to analyze the document. Please ensure it contains carbon emission data.');
           setView('error');
         }
       };
@@ -107,12 +107,14 @@ const App: React.FC = () => {
         )}
 
         {view === 'error' && (
-          <div className="mx-auto max-w-md text-center py-20">
+          <div className="mx-auto max-w-lg text-center py-20">
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 mb-6">
               <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Analysis Failed</h2>
-            <p className="text-slate-500 mt-2 mb-8">{error}</p>
+            <div className="bg-red-50 text-red-700 p-4 rounded-lg mt-4 mb-8 text-sm font-mono text-left overflow-auto max-h-40">
+              {error}
+            </div>
             <button 
               onClick={reset}
               className="rounded-full bg-slate-900 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors"

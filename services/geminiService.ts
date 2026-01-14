@@ -2,9 +2,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { CarbonData } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Safe access to environment variables
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY || '';
+  } catch (e) {
+    return '';
+  }
+};
 
 export const analyzeCarbonReport = async (fileBase64: string, mimeType: string): Promise<CarbonData> => {
+  const apiKey = getApiKey();
+  
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please ensure process.env.API_KEY is set in your environment.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-3-flash-preview';
   
   const prompt = `
