@@ -1,0 +1,5 @@
+{
+  "name": "CarbonTrack AI",
+  "description": "A sophisticated carbon accounting platform that uses Gemini AI to parse environmental reports and visualize emission footprints across Scope 1, 2, and 3.",
+  "requestFramePermissions": []
+}
