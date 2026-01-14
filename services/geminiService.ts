@@ -2,30 +2,29 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { CarbonData } from "../types";
 
-// Safe access to environment variables
-const getApiKey = () => {
-  try {
-    return process.env.API_KEY || '';
-  } catch (e) {
-    return '';
-  }
-};
-
+/**
+ * Analyzes a carbon or environmental report using Gemini AI.
+ * The API key is sourced exclusively from the environment variable process.env.API_KEY.
+ */
 export const analyzeCarbonReport = async (fileBase64: string, mimeType: string): Promise<CarbonData> => {
-  const apiKey = getApiKey();
-  
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please ensure process.env.API_KEY is set in your environment.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  // Ensure the SDK is initialized with the environment-provided API key
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-3-flash-preview';
   
   const prompt = `
-    Analyze the attached environmental/carbon report. Extract the specific carbon accounting data.
-    The output must strictly follow the provided JSON schema.
-    If exact numbers for specific scopes are missing, provide the best estimate based on the text.
-    Ensure totalEmissions equals the sum of scope1, scope2, and scope3.
+    You are an expert Environmental Consultant. Analyze the provided document (report, bill, or declaration).
+    
+    Tasks:
+    1. Identify the company name and the specific reporting period mentioned.
+    2. Extract total emissions in tCO2e. If only kg are provided, convert to metric tonnes.
+    3. Categorize all found emissions into:
+       - Scope 1: Direct emissions (e.g., fuel combustion, company vehicles).
+       - Scope 2: Indirect emissions (e.g., purchased electricity, heating).
+       - Scope 3: Value chain emissions (e.g., travel, waste, supply chain).
+    4. List at least 5 individual sources with their specific amounts.
+    5. Provide high-level strategic insights and actionable reduction recommendations.
+    
+    Return the analysis strictly as JSON matching the provided schema.
   `;
 
   const response = await ai.models.generateContent({
@@ -46,7 +45,7 @@ export const analyzeCarbonReport = async (fileBase64: string, mimeType: string):
           companyName: { type: Type.STRING },
           reportingPeriod: { type: Type.STRING },
           totalEmissions: { type: Type.NUMBER },
-          unit: { type: Type.STRING, description: "e.g., tCO2e" },
+          unit: { type: Type.STRING, description: "Should be tCO2e" },
           breakdown: {
             type: Type.OBJECT,
             properties: {
@@ -78,14 +77,20 @@ export const analyzeCarbonReport = async (fileBase64: string, mimeType: string):
             items: { type: Type.STRING }
           }
         },
-        required: ["companyName", "totalEmissions", "breakdown", "sources"]
+        required: ["companyName", "totalEmissions", "breakdown", "sources", "insights", "recommendations"]
       }
     }
   });
 
-  if (!response.text) {
-    throw new Error("No response from AI");
+  const text = response.text;
+  if (!text) {
+    throw new Error("No analysis could be generated. Please ensure the document contains legible carbon data.");
   }
 
-  return JSON.parse(response.text.trim()) as CarbonData;
+  try {
+    return JSON.parse(text.trim()) as CarbonData;
+  } catch (err) {
+    console.error("Failed to parse AI response:", text);
+    throw new Error("Received invalid data format from the analysis engine.");
+  }
 };
